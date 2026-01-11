@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Master Admin | Academic Control Center</title>
+    
+    <script src="https://unpkg.com/backendless/dist/backendless.min.js"></script>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&display=swap" rel="stylesheet">
+
+    <style>
+        :root { --brand-red: #d32f2f; --dark-bg: #0a0a0a; --card-white: #ffffff; --gold: #FFD700; }
+        body { background-color: var(--dark-bg); color: white; font-family: 'Plus Jakarta Sans', sans-serif; padding-bottom: 50px; }
+        .section-title { font-weight: 800; border-left: 5px solid var(--brand-red); padding-left: 15px; margin-bottom: 25px; }
+        .admin-card { background: var(--card-white); color: #333; border-radius: 20px; padding: 25px; margin-bottom: 25px; border-bottom: 5px solid var(--brand-red); }
+        .edit-active { border: 4px solid #ffc107 !important; background: #fffdf2 !important; box-shadow: 0 0 15px rgba(255, 193, 7, 0.3); }
+        label { font-weight: 800; font-size: 11px; color: #666; text-transform: uppercase; display: block; margin-bottom: 5px; }
+        .form-control, .form-select { border-radius: 10px; margin-bottom: 12px; border: 1px solid #ddd; }
+        .list-container { background: rgba(255,255,255,0.05); border-radius: 20px; padding: 25px; }
+        .details-table { width: 100%; color: white; font-size: 13px; margin-bottom: 30px; }
+        .details-table th { color: #aaa; text-transform: uppercase; font-size: 11px; padding: 10px; border-bottom: 1px solid #444; }
+        .details-table td { padding: 12px 10px; border-bottom: 1px solid #222; vertical-align: middle; }
+        .btn-main { background: var(--brand-red); color: white; font-weight: 700; border-radius: 10px; padding: 12px; border: none; width: 100%; transition: 0.3s; }
+        .action-icons i { cursor: pointer; margin-left: 10px; font-size: 16px; }
+        .nav-tabs .nav-link { color: #aaa; border: none; font-weight: 600; }
+        .nav-tabs .nav-link.active { color: var(--brand-red); background: none; border-bottom: 3px solid var(--brand-red); }
+    </style>
+</head>
+<body style="display:none;" id="adminBody"> <div class="container-fluid p-4">
+    <div class="row">
+        <div class="col-lg-4">
+            <h3 class="section-title">COMMAND CENTER</h3>
+            <a href="individual.html"> individual email</a>
+            <ul class="nav nav-tabs mb-4" id="adminTabs">
+                <li class="nav-item"><button class="nav-link active" onclick="switchTab('portal', this)">Portal</button></li>
+                <li class="nav-item"><button class="nav-link" id="tabBtn-library" onclick="switchTab('library', this)">Library</button></li>
+                <li class="nav-item"><button class="nav-link" id="tabBtn-academy" onclick="switchTab('academy', this)">Academy</button></li>
+                <li class="nav-item"><button class="nav-link" onclick="switchTab('unlock', this)">Access Control</button></li>
+            </ul>
+
+            <div id="tab-portal" class="tab-content-area">
+                <div class="admin-card">
+                    <h6 class="fw-bold mb-3">Branding</h6>
+                    <div class="text-center mb-3">
+                        <img id="currentImg" src="https://via.placeholder.com/80" style="width:80px; height:80px; border-radius:50%; object-fit:cover; border:3px solid var(--brand-red);">
+                        <label class="mt-2">Admin Profile Photo</label>
+                        <input type="file" id="portalFile" class="form-control">
+                    </div>
+                    <hr>
+                    <label>Broadcast Message (Text)</label><textarea id="broadcastMsg" class="form-control" rows="2"></textarea>
+                    <label>Broadcast Image (Post)</label><input type="file" id="postFile" class="form-control">
+                    <button class="btn-main" onclick="updatePortal()">UPDATE PORTAL</button>
+                </div>
+
+                <div class="admin-card" style="border-bottom-color: #111;">
+                    <h6 class="fw-bold mb-3 text-danger"><i class="fas fa-paper-plane me-2"></i>Global Email Blast</h6>
+                    <label>Email Subject</label>
+                    <input type="text" id="blastSubject" class="form-control" placeholder="e.g. Important Update">
+                    <label>Custom Email Body</label>
+                    <textarea id="blastContent" class="form-control" rows="4" placeholder="Enter the message you want to send to all registered students..."></textarea>
+                    <button class="btn-main" style="background: #111" onclick="triggerEmailBlast()">SEND TO ALL USERS</button>
+                </div>
+
+                <div class="admin-card" id="announcementCard">
+                    <h6 class="fw-bold mb-3">Announcement Post</h6>
+                    <input type="hidden" id="announcementId">
+                    <label>Message (Max 250 chars)</label>
+                    <textarea id="announcementMessage" class="form-control" rows="3" maxlength="250" placeholder="Type announcement here..."></textarea>
+                    <button class="btn-main" style="background:#000" onclick="saveAnnouncement()">POST ANNOUNCEMENT</button>
+                    <button class="btn btn-link btn-sm w-100 text-dark mt-2" onclick="location.reload()">Clear</button>
+                </div>
+            </div>
+
+            <div id="tab-library" class="tab-content-area" style="display:none;">
+                <div class="admin-card" id="libCard">
+                    <h6 class="fw-bold mb-3">Library Manager</h6>
+                    <input type="hidden" id="libId">
+                    <label>Title</label><input type="text" id="libTitle" class="form-control">
+                    <label>Course Code</label><input type="text" id="libCode" class="form-control">
+                    
+                    <label>Resource Type / Category</label>
+                    <select id="libType" class="form-select">
+                        <option value="PDF">PDF Note</option>
+                        <option value="Video">Video Lesson</option>
+                        <option value="Assignment">Assignment</option>
+                        <option value="PQ">Past Question</option>
+                    </select>
+
+                    <label>Academic Level</label>
+                    <select id="libLevel" class="form-select">
+                        <option value="General">General</option><option value="100">100L</option><option value="200">200L</option><option value="300">300L</option><option value="400">400L</option><option value="500">500L</option>
+                    </select>
+                    <label>File Upload</label><input type="file" id="libFile" class="form-control">
+                    <button class="btn-main" onclick="saveToLibrary()" id="libBtn">SAVE TO LIBRARY</button>
+                    <button class="btn btn-link btn-sm w-100 text-dark mt-2" onclick="location.reload()">Reset</button>
+                </div>
+            </div>
+
+            <div id="tab-academy" class="tab-content-area" style="display:none;">
+                <div class="admin-card mb-4" id="courseCard">
+                    <h6 class="fw-bold mb-2">Academy Course</h6>
+                    <input type="hidden" id="courseId">
+                    <label>Title</label><input type="text" id="courseTitle" class="form-control">
+                    <label>Price (₦)</label><input type="number" id="coursePrice" class="form-control">
+                    <label>Course Description</label>
+                    <textarea id="courseDesc" class="form-control" rows="2" placeholder="Briefly describe what students will learn..."></textarea>
+                    <label>Thumbnail</label><input type="file" id="courseThumb" class="form-control">
+                    <button class="btn-main" onclick="saveCourse()" id="courseBtn">SAVE COURSE</button>
+                </div>
+                <div class="admin-card" id="lessonCard">
+                    <h6 class="fw-bold mb-2">Lesson Manager (Video + PDF)</h6>
+                    <input type="hidden" id="lessonId">
+                    <label>Course</label><select id="courseSelect" class="form-select"></select>
+                    <label>Lesson Title</label><input type="text" id="lessonTitle" class="form-control">
+                    <label>Upload Lesson Video</label><input type="file" id="lessonVideoFile" class="form-control">
+                    <label>Upload Lesson PDF Note</label><input type="file" id="lessonPdfFile" class="form-control">
+                    <button class="btn-main" onclick="saveLesson()" id="lessonBtn">SAVE LESSON</button>
+                </div>
+            </div>
+
+            <div id="tab-unlock" class="tab-content-area" style="display:none;">
+                <div class="admin-card text-dark">
+                    <h6 class="fw-bold mb-3">Access & Scholarships</h6>
+                    <div class="mb-4 pb-3 border-bottom">
+                        <label class="text-danger fw-bold">1. Global Scholarship (ALL COURSES)</label>
+                        <input type="email" id="scholarEmail" class="form-control" placeholder="user@gmail.com">
+                        <button class="btn btn-dark btn-sm w-100 mb-1" onclick="toggleScholarship(true)">GRANT FULL ACADEMY PASS</button>
+                        <button class="btn btn-outline-dark btn-sm w-100" onclick="toggleScholarship(false)">REVOKE FULL PASS</button>
+                    </div>
+                    <label class="text-primary fw-bold">2. Single Course Access (ONLY ONE)</label>
+                    <input type="email" id="unlockEmail" class="form-control" placeholder="student@gmail.com">
+                    <label>Select Specific Course</label><select id="unlockCourseSelect" class="form-select"></select>
+                    <button class="btn-main" style="background:#28a745" onclick="grantSingleAccess()">UNLOCK SINGLE COURSE</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-8">
+            <div class="list-container">
+                <h4 class="fw-bold mb-4">INVENTORY</h4>
+                
+                <h6 class="text-white small fw-bold">ANNOUNCEMENTS</h6>
+                <table class="details-table"><thead><tr><th>Message</th><th>Date</th><th>Actions</th></tr></thead><tbody id="annInv"></tbody></table>
+
+                <h6 class="text-danger small fw-bold mt-4">LIBRARY</h6>
+                <table class="details-table"><thead><tr><th>Title</th><th>Lvl</th><th>Type</th><th>Actions</th></tr></thead><tbody id="libInv"></tbody></table>
+                
+                <h6 class="text-warning small fw-bold mt-4">COURSES</h6>
+                <table class="details-table"><thead><tr><th>Title</th><th>Price</th><th>Actions</th></tr></thead><tbody id="courseInv"></tbody></table>
+                
+                <h6 class="text-info small fw-bold mt-4">LESSONS</h6>
+                <table class="details-table"><thead><tr><th>Title</th><th>Actions</th></tr></thead><tbody id="lessonInv"></tbody></table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // UPDATED KEYS APPLIED
+    const APP_ID = 'F3BC0BA0-2B86-4D32-8828-DDFED2BD7EAF';
+    const JS_KEY = 'F8C339CE-AB50-4F68-83BD-0A73BF97AEDB';
+    const ACADEMY_URL = "https://naterhubacademy-web.github.io/Nater-Hub-Academy-/";
+    Backendless.initApp(APP_ID, JS_KEY);
+
+    let portalId = null;
+
+    async function init() {
+        Backendless.serverURL = "https://api.backendless.com";
+        try {
+            // SECURITY CHECK: Verify Login & Role
+            const user = await Backendless.UserService.getCurrentUser();
+            if (!user) { window.location.href = 'index.html'; return; }
+
+            const roles = await Backendless.UserService.getUserRoles();
+            if (!roles.includes("Admin")) {
+                alert("Restricted Access: Admins Only.");
+                window.location.href = 'index.html';
+                return;
+            }
+
+            // Reveal body if verified
+            document.getElementById('adminBody').style.display = "block";
+
+            const config = await Backendless.Data.of("PortalSettings").findFirst();
+            if(config) {
+                portalId = config.objectId;
+                document.getElementById('broadcastMsg').value = config.message || "";
+                document.getElementById('currentImg').src = config.profileImageUrl || "";
+            }
+            loadInventory();
+        } catch (e) { window.location.href = 'index.html'; }
+    }
+
+    // --- EMAIL BLAST ---
+    async function triggerEmailBlast() {
+        const subject = document.getElementById('blastSubject').value;
+        const msg = document.getElementById('blastContent').value;
+        
+        if(!subject || !msg) return alert("Please provide both subject and message content.");
+        if(!confirm("Are you sure? This will email EVERY student in your database.")) return;
+
+        try {
+            const users = await Backendless.Data.of("Users").find();
+            const emails = users.map(u => u.email);
+
+            if(emails.length === 0) return alert("No students found in database.");
+
+            const htmlBody = generateBrandedEmail("Notice for Scholars", msg);
+            await Backendless.Messaging.sendEmail(subject, { htmlmessage: htmlBody }, emails);
+            
+            alert("Email successfully sent to " + emails.length + " students!");
+            document.getElementById('blastSubject').value = "";
+            document.getElementById('blastContent').value = "";
+        } catch (e) {
+            alert("Blast Error: " + e.message);
+        }
+    }
+
+    function generateBrandedEmail(title, content) {
+        return `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: auto; border: 1px solid #eee; border-radius: 20px; overflow: hidden;">
+            <div style="background-color: #0a0a0a; padding: 30px; text-align: center; border-bottom: 5px solid #FFD700;">
+                <h1 style="margin: 0; color: #FFD700; letter-spacing: 5px;">NATER HUB</h1>
+            </div>
+            <div style="padding: 40px; color: #333; line-height: 1.6;">
+                <h2 style="color: #d32f2f;">${title}</h2>
+                <p>${content.replace(/\n/g, '<br>')}</p>
+                <div style="text-align: center; margin-top: 30px;">
+                    <a href="${ACADEMY_URL}" style="background-color: #d32f2f; color: white; padding: 12px 25px; text-decoration: none; border-radius: 8px; font-weight: bold;">LOGIN TO ACADEMY</a>
+                </div>
+            </div>
+        </div>`;
+    }
+
+    async function sendCongratulationEmail(email, courseName) {
+        const subject = "🚀 Course Access Granted: " + courseName;
+        const htmlBody = generateBrandedEmail("Congratulations, Scholar!/or user ", 
+            `Your access to <b>${courseName}</b> has been officially activated.<br><br><i>"Study hard, stay consistent, and become an expert in your field."</i>`);
+        try {
+            await Backendless.Messaging.sendEmail(subject, { htmlmessage: htmlBody }, [email]);
+        } catch (err) { console.error("Email failed:", err); }
+    }
+
+    function switchTab(t, el) {
+        document.querySelectorAll('.tab-content-area').forEach(x => x.style.display = 'none');
+        document.querySelectorAll('.nav-link').forEach(x => x.classList.remove('active'));
+        document.getElementById('tab-' + t).style.display = 'block';
+        el.classList.add('active');
+    }
+
+    async function saveAnnouncement() {
+        const id = document.getElementById('announcementId').value;
+        const msg = document.getElementById('announcementMessage').value;
+        if(!msg) return alert("Message cannot be empty");
+        let data = { message: msg };
+        if(id) data.objectId = id;
+        try {
+            await Backendless.Data.of("Announcements").save(data);
+            alert("Announcement Saved!");
+            location.reload();
+        } catch(e) { alert("Error: " + e.message); }
+    }
+
+    function editAnn(id, msg) {
+        document.getElementById('announcementId').value = id;
+        document.getElementById('announcementMessage').value = msg;
+        document.getElementById('announcementCard').classList.add('edit-active');
+        window.scrollTo(0,0);
+    }
+
+    async function toggleScholarship(status) {
+        const email = document.getElementById('scholarEmail').value;
+        if(!email) return alert("Enter Email");
+        try {
+            const users = await Backendless.Data.of("Users").find(Backendless.DataQueryBuilder.create().setWhereClause(`email='${email}'`));
+            if(users.length === 0) return alert("User not found!");
+            await Backendless.Data.of("Users").save({ objectId: users[0].objectId, freeAccess: status });
+            alert(status ? "FULL ACADEMY PASS GRANTED!" : "FULL PASS REVOKED!");
+            if(status) sendCongratulationEmail(email, "All Academy Courses (Scholarship)");
+        } catch(e) { console.error(e); }
+    }
+
+    async function grantSingleAccess() {
+        const email = document.getElementById('unlockEmail').value;
+        const cId = document.getElementById('unlockCourseSelect').value;
+        const cName = document.getElementById('unlockCourseSelect').options[document.getElementById('unlockCourseSelect').selectedIndex].text;
+        if(!email) return alert("Enter Email");
+        try {
+            const users = await Backendless.Data.of("Users").find(Backendless.DataQueryBuilder.create().setWhereClause(`email='${email}'`));
+            if(users.length === 0) return alert("User not found!");
+            await Backendless.Data.of("UserSubscriptions").save({ courseId: cId, courseName: cName, ownerId: users[0].objectId });
+            await sendCongratulationEmail(email, cName);
+            alert("SINGLE ACCESS GRANTED FOR " + cName);
+        } catch(e) { console.error(e); }
+    }
+
+    async function updatePortal() {
+        const profile = document.getElementById('portalFile').files[0];
+        const post = document.getElementById('postFile').files[0];
+        let pUrl = document.getElementById('currentImg').src;
+        let postUrl = "";
+        if(profile) pUrl = (await Backendless.Files.upload(profile, "branding", true)).fileURL;
+        if(post) postUrl = (await Backendless.Files.upload(post, "announcements", true)).fileURL;
+        await Backendless.Data.of("PortalSettings").save({ objectId: portalId, message: document.getElementById('broadcastMsg').value, profileImageUrl: pUrl, postImageUrl: postUrl });
+        alert("Portal Updated!");
+    }
+
+    async function saveToLibrary() {
+        const id = document.getElementById('libId').value;
+        const file = document.getElementById('libFile').files[0];
+        let data = { title: document.getElementById('libTitle').value, courseCode: document.getElementById('libCode').value, level: document.getElementById('libLevel').value, type: document.getElementById('libType').value };
+        if(id) data.objectId = id;
+        if(file) data.fileURL = (await Backendless.Files.upload(file, "library", true)).fileURL;
+        await Backendless.Data.of("Notes").save(data);
+        location.reload();
+    }
+
+    async function saveCourse() {
+        const id = document.getElementById('courseId').value;
+        const file = document.getElementById('courseThumb').files[0];
+        let data = { title: document.getElementById('courseTitle').value, price: parseFloat(document.getElementById('coursePrice').value), description: document.getElementById('courseDesc').value };
+        if(id) data.objectId = id;
+        if(file) data.thumbnail = (await Backendless.Files.upload(file, "academy", true)).fileURL;
+        await Backendless.Data.of("Courses").save(data);
+        location.reload();
+    }
+
+    async function saveLesson() {
+        const id = document.getElementById('lessonId').value;
+        const vF = document.getElementById('lessonVideoFile').files[0];
+        const pF = document.getElementById('lessonPdfFile').files[0];
+        let data = { title: document.getElementById('lessonTitle').value, courseId: document.getElementById('courseSelect').value };
+        if(id) data.objectId = id;
+        if(vF) data.videoUrl = (await Backendless.Files.upload(vF, "videos", true)).fileURL;
+        if(pF) data.pdfUrl = (await Backendless.Files.upload(pF, "notes", true)).fileURL;
+        await Backendless.Data.of("CourseContent").save(data);
+        location.reload();
+    }
+
+    function editLib(id, title, code, lvl, type) {
+        document.getElementById('libId').value = id;
+        document.getElementById('libTitle').value = title;
+        document.getElementById('libCode').value = code;
+        document.getElementById('libLevel').value = lvl;
+        document.getElementById('libType').value = type;
+        document.getElementById('libCard').classList.add('edit-active');
+        switchTab('library', document.getElementById('tabBtn-library'));
+        window.scrollTo(0,0);
+    }
+
+    function editCourse(id, title, price, desc) {
+        document.getElementById('courseId').value = id;
+        document.getElementById('courseTitle').value = title;
+        document.getElementById('coursePrice').value = price;
+        document.getElementById('courseDesc').value = desc || "";
+        document.getElementById('courseCard').classList.add('edit-active');
+        switchTab('academy', document.getElementById('tabBtn-academy'));
+        window.scrollTo(0,0);
+    }
+
+    function editLesson(id, title, cId) {
+        document.getElementById('lessonId').value = id;
+        document.getElementById('lessonTitle').value = title;
+        document.getElementById('courseSelect').value = cId;
+        document.getElementById('lessonCard').classList.add('edit-active');
+        switchTab('academy', document.getElementById('tabBtn-academy'));
+        window.scrollTo(0,0);
+    }
+
+    async function loadInventory() {
+        const anns = await Backendless.Data.of("Announcements").find();
+        const lib = await Backendless.Data.of("Notes").find();
+        const courses = await Backendless.Data.of("Courses").find();
+        const lessons = await Backendless.Data.of("CourseContent").find();
+
+        document.getElementById('annInv').innerHTML = anns.map(a => `<tr><td>${a.message}</td><td>${new Date(a.created).toLocaleDateString()}</td><td><i class="fas fa-edit text-warning" onclick="editAnn('${a.objectId}','${a.message}')"></i> <i class="fas fa-trash text-danger" onclick="deleteItem('Announcements','${a.objectId}')"></i></td></tr>`).join('');
+        document.getElementById('libInv').innerHTML = lib.map(i => `<tr><td>${i.title}</td><td>${i.level}</td><td>${i.type}</td><td><i class="fas fa-edit text-warning" onclick="editLib('${i.objectId}','${i.title}','${i.courseCode}','${i.level}','${i.type}')"></i> <i class="fas fa-trash text-danger" onclick="deleteItem('Notes','${i.objectId}')"></i></td></tr>`).join('');
+        document.getElementById('courseInv').innerHTML = courses.map(c => `<tr><td>${c.title}</td><td>₦${c.price}</td><td><i class="fas fa-edit text-warning" onclick="editCourse('${c.objectId}','${c.title}',${c.price},'${c.description}')"></i> <i class="fas fa-trash text-danger" onclick="deleteItem('Courses','${c.objectId}')"></i></td></tr>`).join('');
+        document.getElementById('lessonInv').innerHTML = lessons.map(l => `<tr><td>${l.title}</td><td><i class="fas fa-edit text-warning" onclick="editLesson('${l.objectId}','${l.title}','${l.courseId}')"></i> <i class="fas fa-trash text-danger" onclick="deleteItem('CourseContent','${l.objectId}')"></i></td></tr>`).join('');
+        
+        const opts = courses.map(c => `<option value="${c.objectId}">${c.title}</option>`).join('');
+        document.getElementById('courseSelect').innerHTML = opts;
+        document.getElementById('unlockCourseSelect').innerHTML = opts;
+    }
+
+    async function deleteItem(table, id) { if(confirm("Permanently Delete?")) { await Backendless.Data.of(table).remove(id); location.reload(); } }
+    window.onload = init;
+</script>
+</body>
+</html>
